@@ -484,12 +484,12 @@ function applyEffect(s, e, ctx) {
       });
       break;
     case 'assemble': {
-      // 등급 높은 광물 2개를 합쳐 포탑으로
+      // 광물 중 무작위 2개를 합쳐 포탑으로
       const mins = me.board.filter(m => isUnit(m) && CARDS[m.id].mineral)
         .sort((a, b) => CARDS[b.id].mineral - CARDS[a.id].mineral);
       if (mins.length < 2) break;
       const ca = ctx.target && getChar(s, ctx.target), cb = ctx.target2 && getChar(s, ctx.target2);
-      let [a, b] = mins;
+      let [a, b] = shuffle([...mins]); // 무작위 2개
       if (ca && cb && !ca.hero && !cb.hero && ca.m !== cb.m && mins.includes(ca.m) && mins.includes(cb.m)) { a = ca.m; b = cb.m; }
       const sum = CARDS[a.id].mineral + CARDS[b.id].mineral;
       const id = recipeFor(CARDS[a.id].mineral, CARDS[b.id].mineral);

@@ -258,26 +258,118 @@ function hasMovesLeft() {
 // 죽은 소환물은 화면에서 바로 사라지므로, 연출이 끝날 때까지 '유령' 복제본을 남겨둔다
 const ghosts = {};
 // ───── 드워프 연출: 포탑 사격 / 조립 ─────
+// 포탑마다 다른 투사체: 모양·색·궤적(arc: 포물선 높이)·크기·꼬리
+const PROJ_STYLES = {
+  rock:   { core: '🪨', color: '#c9a77a', glow: '#7a5a30', arc: 70, size: 2.4, speed: 300 },
+  arrow:  { core: '➤', color: '#ffe9a8', glow: '#ffb300', arc: 0, size: 2.6, speed: 220, rotate: true },
+  pellet: { core: '●', color: '#ffd166', glow: '#ff5400', arc: 10, size: 1.2, speed: 240, count: 1 },
+  bullet: { core: '●', color: '#fff3b0', glow: '#ff7a00', arc: 0, size: 1.8, speed: 260 },
+  shell:  { core: '☄️', color: '#ffb347', glow: '#ff3d00', arc: 110, size: 3.6, speed: 300, big: true },
+  ice:    { core: '❄️', color: '#bfe8ff', glow: '#3fa9ff', arc: 20, size: 2.6, speed: 280 },
+  heal:   { core: '✦', color: '#9dffb0', glow: '#1fbf55', arc: 25, size: 2.4, speed: 280 },
+  laser:  { laser: true, color: '#ff6bd6', glow: '#ff00a8' },
+};
+const TURRET_PROJ = {
+  d_r11: 'rock', d_rusty: 'rock', d_r12: 'arrow', d_crossbow: 'arrow', d_r13: 'pellet', d_r22: 'bullet',
+  d_r23: 'heal', d_r24: 'laser', d_r33: 'shell', d_cannon: 'shell', d_r44: 'shell', d_r34: 'ice',
+};
+function fxEl(cls, x, y, html) {
+  const d = document.createElement('div');
+  d.className = cls;
+  if (html) d.innerHTML = html;
+  d.style.left = x + 'px'; d.style.top = y + 'px';
+  $('#fx').appendChild(d);
+  return d;
+}
+// 맞은 자리: 충격파 고리 + 사방으로 튀는 불꽃 (큰 포탄은 화면 흔들림)
+function impactBurst(x, y, st) {
+  const ring = fxEl('impact-ring', x, y);
+  ring.style.borderColor = st.color; ring.style.boxShadow = `0 0 18px ${st.glow}, inset 0 0 12px ${st.glow}`;
+  setTimeout(() => ring.remove(), 500);
+  const n = st.big ? 12 : 7;
+  for (let i = 0; i < n; i++) {
+    const sp = fxEl('spark-dot', x, y);
+    sp.style.background = i % 2 ? st.color : st.glow;
+    const ang = Math.random() * Math.PI * 2, dist = (st.big ? 60 : 34) + Math.random() * 30;
+    sp.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist}px)) scale(.2)`, opacity: 0 }],
+      { duration: 420 + Math.random() * 200, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+    setTimeout(() => sp.remove(), 650);
+  }
+  floatText({ left: x, top: y, width: 0, height: 0 }, st.big ? '💥' : '✸', 'spark');
+  if (st.big) $('#game').animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-5px,3px)' }, { transform: 'translate(4px,-3px)' }, { transform: 'translate(0,0)' }], { duration: 260 });
+}
 function fireProjectile(from, to, prev) {
   const a = rectOf(from, prev), b = rectOf(to, prev);
   if (!a || !b) return;
+  const shooter = getChar(App.state, from);
+  const st = PROJ_STYLES[(shooter && !shooter.hero && TURRET_PROJ[shooter.m.id]) || 'bullet'];
   const el = elByRef(from);
-  if (el) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15) translateY(-4px)' }, { transform: 'scale(1)' }], { duration: 200 });
-  const p = document.createElement('div');
-  p.className = 'bullet';
-  p.textContent = '●';
+  if (el) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.18) translateY(-5px)', filter: `drop-shadow(0 0 10px ${st.glow})` }, { transform: 'scale(1)' }], { duration: 220 });
   const ax = a.left + a.width / 2, ay = a.top + a.height / 2;
   const bx = b.left + b.width / 2, by = b.top + b.height / 2;
-  Object.assign(p.style, { left: ax + 'px', top: ay + 'px' });
-  $('#fx').appendChild(p);
-  p.animate([{ transform: 'translate(-50%,-50%) scale(.6)' }, { transform: `translate(calc(-50% + ${bx - ax}px), calc(-50% + ${by - ay}px)) scale(1.2)` }],
-    { duration: 300, easing: 'ease-in', fill: 'forwards' });
-  setTimeout(() => { p.remove(); floatText(b, '💥', 'spark'); }, 300);
+  // 포구 섬광
+  const flash = fxEl('muzzle', ax, ay); flash.style.background = `radial-gradient(circle, #fff, ${st.glow} 45%, transparent 70%)`;
+  setTimeout(() => flash.remove(), 180);
+  if (st.laser) {
+    // 레일건: 순간 레이저 빔
+    const len = Math.hypot(bx - ax, by - ay), ang = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
+    const beam = fxEl('laser-beam', ax, ay);
+    beam.style.width = len + 'px'; beam.style.transform = `rotate(${ang}deg)`;
+    beam.style.background = `linear-gradient(90deg, #fff, ${st.color} 30%, ${st.glow})`; beam.style.boxShadow = `0 0 14px ${st.glow}, 0 0 28px ${st.color}`;
+    beam.animate([{ opacity: 0, height: '2px' }, { opacity: 1, height: '9px', offset: .25 }, { opacity: 0, height: '1px' }], { duration: 360, fill: 'forwards' });
+    setTimeout(() => beam.remove(), 380);
+    setTimeout(() => impactBurst(bx, by, st), 120);
+    return;
+  }
+  const u = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const p = fxEl('proj', ax, ay, st.core);
+  p.style.fontSize = `calc(${st.size} * min(1vh, .56vw))`;
+  p.style.color = st.color;
+  p.style.filter = `drop-shadow(0 0 6px ${st.glow}) drop-shadow(0 0 12px ${st.glow})`;
+  const dur = st.speed, t0 = performance.now();
+  let lastTrail = 0;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / dur);
+    const e = t * t * (3 - 2 * t) * .4 + t * .6;                // 살짝 가속
+    const x = ax + (bx - ax) * e, y = ay + (by - ay) * e - st.arc * Math.sin(Math.PI * e);
+    let rot = '';
+    if (st.rotate) rot = ` rotate(${Math.atan2(by - ay, bx - ax) * 180 / Math.PI}deg)`;
+    else if (st.arc) rot = ` rotate(${t * 540}deg)`;
+    p.style.transform = `translate(calc(-50% + ${x - ax}px), calc(-50% + ${y - ay}px))${rot}`;
+    if (now - lastTrail > 16) {                                    // 꼬리 입자
+      lastTrail = now;
+      const tr = fxEl('trail-dot', x, y);
+      tr.style.background = st.glow; tr.style.boxShadow = `0 0 8px ${st.color}`;
+      setTimeout(() => tr.remove(), 380);
+    }
+    if (t < 1) requestAnimationFrame(step);
+    else { p.remove(); impactBurst(bx, by, st); }
+  };
+  requestAnimationFrame(step);
+  void u;
 }
 function flameBurst(from, pi, prev) {
   const el = elByRef(from);
-  if (el) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.2)' }, { transform: 'scale(1)' }], { duration: 300 });
-  App.state.players[pi].board.forEach(m => { const r = rectOf('m' + m.uid, prev); if (r) setTimeout(() => floatText(r, '🔥', 'spark'), 250); });
+  if (el) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.25)', filter: 'drop-shadow(0 0 14px #ff5400)' }, { transform: 'scale(1)' }], { duration: 320 });
+  const fr = rectOf(from, prev);
+  App.state.players[pi].board.forEach((m, i) => {
+    const r = rectOf('m' + m.uid, prev);
+    if (!r || !fr) return;
+    // 불길이 각 적에게 뻗어감
+    setTimeout(() => {
+      const ax = fr.left + fr.width / 2, ay = fr.top + fr.height / 2, bx = r.left + r.width / 2, by = r.top + r.height / 2;
+      for (let k = 0; k < 5; k++) {
+        const f = fxEl('proj', ax, ay, '🔥');
+        f.style.fontSize = `calc(${2 + Math.random()} * min(1vh, .56vw))`;
+        f.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: .9 },
+          { transform: `translate(calc(-50% + ${(bx - ax) * (0.75 + k * 0.06)}px), calc(-50% + ${(by - ay) * (0.75 + k * 0.06) + (Math.random() - .5) * 30}px)) scale(1.3)`, opacity: 0 }],
+          { duration: 260 + k * 30, easing: 'ease-out', fill: 'forwards' });
+        setTimeout(() => f.remove(), 420);
+      }
+      impactBurst(bx, by, { color: '#ffb347', glow: '#ff3d00' });
+    }, 60 + i * 40);
+  });
 }
 function playAssemble(e, prev) {
   const target = elByRef(e.ref);
@@ -401,7 +493,7 @@ function playAbduct(e, prev) {
 
 function makeGhost(ref, prev, lifeMs) {
   const r = prev[ref], html = prev._html && prev._html[ref];
-  if (!r || !html || ghosts[ref]) return;
+  if (!r || !html || ghosts[ref] || !r.width || (r.left <= 1 && r.top <= 1)) return; // 위치를 모르면 유령을 만들지 않음
   const wrap = document.createElement('div');
   wrap.innerHTML = html;
   const g = wrap.firstElementChild;
