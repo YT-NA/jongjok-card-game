@@ -50,6 +50,7 @@ const Arena = {
       s.human = false; s.left = true; s.name += ' (나감·AI 대신)';
       if (H.phase === 'pick') this.autoPickAI();
       H.matches.forEach(m => this.scheduleAI(m));
+      [...new Set(H.matches.map(m => m.roundIdx))].forEach(r => this.maybeFastForward(r));
     }
     this.publish();
   },
@@ -185,6 +186,7 @@ const Arena = {
     L.out = ROUNDS[m.roundIdx];
     L.outIdx = m.roundIdx;
     this.publish();
+    this.maybeFastForward(m.roundIdx);
     // 이번 라운드가 다 끝나면 승자끼리 다음 라운드 (대진표 순서대로 짝)
     const round = H.matches.filter(x => x.roundIdx === m.roundIdx).sort((a, b) => a.slot - b.slot);
     if (!round.every(x => x.done)) return;
@@ -194,7 +196,28 @@ const Arena = {
       if (this.H !== H) return;
       for (let k = 0; k < round.length / 2; k++) this.newMatch(m.roundIdx + 1, k, round[2 * k].winner, round[2 * k + 1].winner);
       this.publish();
-    }, 2500);
+    }, 1200);
+  },
+
+  // 이 라운드에 사람이 하는 경기가 하나도 안 남았으면, AI끼리 남은 경기는 기다리지 않고 바로 끝까지 진행
+  maybeFastForward(roundIdx) {
+    const H = this.H;
+    if (!H) return;
+    const pending = H.matches.filter(x => x.roundIdx === roundIdx && !x.done);
+    if (!pending.length || pending.some(x => x.seats.some(i => H.seats[i].human))) return;
+    setTimeout(() => {
+      if (this.H !== H) return;
+      for (const m of pending) {
+        if (m.done) continue;
+        for (let n = 0; n < 4000 && m.state.winner == null; n++) {
+          const cur = m.state.current;
+          if (!applyAction(m.state, cur, aiChoose(m.state, cur))) applyAction(m.state, cur, { type: 'end' });
+        }
+        m.finishing = true;
+        this.sendMatch(m);
+        this.finishMatch(m);
+      }
+    }, 700);
   },
 
   finishArena(final) {
@@ -272,6 +295,7 @@ const ArenaClient = {
     const prevPhase = this.view && this.view.phase;
     this.view = v; this.you = you;
     if (v.phase !== 'done') this.savedResult = false;
+    if (!v.practice && v.seats[you] && v.phase !== 'lobby') { setRating(v.seats[you].rating); updateMenuRating(); }
     if (v.phase === 'lobby') return this.showLobby();
     if (v.phase === 'pick') return this.showPick();
     if (v.phase === 'battle') {
@@ -282,7 +306,6 @@ const ArenaClient = {
       return;
     }
     if (v.phase === 'done') {
-      if (!this.savedResult && !v.practice) { setRating(v.seats[you].rating); this.savedResult = true; updateMenuRating(); }
       if (prevPhase !== 'done') setTimeout(() => this.showResults(), App.viewing != null ? 2200 : 0);
       else this.showResults();
     }
@@ -414,8 +437,10 @@ const ArenaClient = {
       <div class="big-result">${mine.place === 1 ? '🥇' : mine.place === 2 ? '🥈' : mine.place === 3 ? '🥉' : '🎖️'}</div>
       <table class="result-table"><tr><th>순위</th><th>플레이어</th><th>점수 변화</th><th>랭크 점수</th></tr>${rows}</table>
       ${v.practice ? '<div class="status">전장 연습이라 랭크 점수는 바뀌지 않았습니다.</div>' : `<div class="status">내 랭크 점수: <b>${mine.rating}</b> (강한 상대를 이길수록 많이 오릅니다 · 우승 보너스 +${CHAMP_BONUS})</div>`}
-      ${again}`);
+      ${again}
+      <button class="btn ghost" id="arenaExit">🚪 메인으로</button>`);
     if (this.isHost) $('#arenaAgain').onclick = () => Arena.again();
+    $('#arenaExit').onclick = () => toMenu();
   },
 };
 

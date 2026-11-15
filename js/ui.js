@@ -874,10 +874,22 @@ function showArenaGameOver() {
   else if (s.winner === 'draw') { title = round + ' 무승부 (동전 던지기로 진출자 결정)'; emoji = '🤝'; }
   else if (s.winner === App.me) { title = round === '결승' ? '🏆 전장 우승!' : round + ' 승리! ' + (round.startsWith('8강') ? '준결승' : '결승') + ' 진출!'; emoji = round === '결승' ? '🥇' : '🎉'; }
   else { title = round + ' 패배...'; emoji = '💀'; }
-  const note = !App.spectating && s.winner === App.me && round !== '결승' ? '같은 라운드의 다른 경기가 모두 끝나면 다음 경기가 자동으로 시작됩니다.' : '';
+  const won = !App.spectating && s.winner === App.me, lost = !App.spectating && s.winner !== App.me;
+  const note = won && round !== '결승' ? '다른 사람 경기가 끝나면 다음 경기가 바로 시작됩니다. (AI끼리 경기는 기다리지 않고 바로 끝냄)'
+    : lost && !(v && v.practice) ? `랭크 점수는 이미 저장됐습니다. 지금 나가도 괜찮아요.` : '';
   const o = overlay('<div class="big-result">' + emoji + '</div><h2>' + esc(title) + '</h2><div class="status">' + note + '</div>' +
-    '<div class="ov-btns"><button class="btn primary" id="goBracket">' + (round === '결승' ? '🏆 결과 보기' : '🏟 대진표 보기') + '</button><button class="btn" id="goView">전장 보기</button></div>');
+    '<div class="ov-btns">' +
+    (won && round !== '결승' ? '<button class="btn primary big" id="goBracket">⏩ 다음 경기로</button>'
+      : lost ? '<button class="btn primary big" id="goExit">🚪 나가기</button><button class="btn" id="goBracket">🏟 남은 경기 보기</button>'
+      : '<button class="btn primary" id="goBracket">' + (round === '결승' ? '🏆 결과 보기' : '🏟 대진표 보기') + '</button>') +
+    '<button class="btn ghost" id="goView">전장 보기</button></div>');
   o.querySelector('#goBracket').onclick = () => ArenaClient.backToBracket();
+  const ex = o.querySelector('#goExit');
+  if (ex) ex.onclick = () => {
+    // 진 사람은 바로 나감. 단, 온라인 방장이 나가면 다른 사람 경기가 끝나므로 한 번 확인
+    if (ArenaClient.isHost && Arena.H && !Arena.H.practice) return confirmLeaveArena(showArenaGameOver);
+    toMenu();
+  };
   o.querySelector('#goView').onclick = () => { closeOverlay(); toast('⚙ 버튼으로 대진표로 돌아갈 수 있습니다.'); };
 }
 
