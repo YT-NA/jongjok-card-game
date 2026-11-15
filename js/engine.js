@@ -23,6 +23,30 @@ function raceOf(id) { const c = CARDS[id]; return RACES[c.race] || NEUTRAL; }
 
 const MINERAL_ICON = { 1: '🪨돌', 2: '⛓️철', 3: '🟡금', 4: '🔷미스릴' };
 // 조합표: 등급 2개 → 포탑 id
+// 광석 바르기: 녹슨 포탑은 수리, 진화 포탑·진화 로봇은 레벨업
+function upgradeMachine(s, pi, ore, mach) {
+  const me = s.players[pi];
+  const grade = CARDS[ore.id].mineral, kind = CARDS[mach.id].upgrade, before = CARDS[mach.id].name;
+  me.board.splice(me.board.indexOf(ore), 1);
+  let label;
+  if (kind === 'repair') {
+    const n = CARDS.d_fixed;
+    mach.id = 'd_fixed'; mach.atk = n.atk; mach.hp = n.hp; mach.maxHp = n.hp;
+    label = '🔧 수리 완료!';
+  } else if (kind === 'turret') {
+    mach.level = (mach.level || 1) + 1;
+    mach.turretBonus = (mach.turretBonus || 0) + (grade >= 4 ? 2 : 1);
+    mach.hp += 2; mach.maxHp += 2;
+    label = `⬆ Lv.${mach.level} 사격 ${CARDS[mach.id].turret + mach.turretBonus}`;
+  } else {
+    mach.level = (mach.level || 1) + 1;
+    mach.atk += grade >= 3 ? 2 : 1; mach.hp += 2; mach.maxHp += 2;
+    label = `⬆ Lv.${mach.level} ${mach.atk}/${mach.hp}`;
+  }
+  ev(s, { type: 'upgrade', pi, ore: 'm' + ore.uid, ref: 'm' + mach.uid, oreId: ore.id, label });
+  log(s, `🔧 [${CARDS[ore.id].name}]을(를) [${before}]에 발라서 ${label}`);
+}
+
 function recipeFor(g1, g2) {
   const [a, b] = [g1, g2].sort((x, y) => x - y);
   const c = CARD_LIST.find(x => x.recipe && x.recipe[0] === a && x.recipe[1] === b);
@@ -484,10 +508,16 @@ function applyEffect(s, e, ctx) {
       });
       break;
     case 'assemble': {
-      // 광물 중 무작위 2개를 합쳐 포탑으로
+      // 무작위 작업대: 가능한 작업 중 하나 (① 광물 2개 합치기 ② 광물 1개를 기계에 바르기)
       const mins = me.board.filter(m => isUnit(m) && CARDS[m.id].mineral)
         .sort((a, b) => CARDS[b.id].mineral - CARDS[a.id].mineral);
-      if (mins.length < 2) break;
+      const ups = me.board.filter(m => isUnit(m) && CARDS[m.id].upgrade);
+      const jobs = [];
+      if (mins.length >= 2) jobs.push('combine');
+      if (mins.length >= 1 && ups.length) jobs.push('upgrade');
+      const job = pick(jobs);
+      if (!job) break;
+      if (job === 'upgrade') { upgradeMachine(s, ctx.pi, pick(mins), pick(ups)); break; }
       const ca = ctx.target && getChar(s, ctx.target), cb = ctx.target2 && getChar(s, ctx.target2);
       let [a, b] = shuffle([...mins]); // 무작위 2개
       if (ca && cb && !ca.hero && !cb.hero && ca.m !== cb.m && mins.includes(ca.m) && mins.includes(cb.m)) { a = ca.m; b = cb.m; }
@@ -647,7 +677,11 @@ function canHeroPower(s, pi) {
   if (p.heroPowerUsed) return { ok: false, reason: '영웅 능력은 턴마다 한 번만 쓸 수 있습니다.' };
   if (p.mana < hp.cost) return { ok: false, reason: '마나가 부족합니다.' };
   if (hp.needsBoard && p.board.length >= MAX_BOARD) return { ok: false, reason: '전장이 가득 찼습니다.' };
-  if (hp.needsMinerals && p.board.filter(m => isUnit(m) && CARDS[m.id].mineral).length < hp.needsMinerals) return { ok: false, reason: `조립하려면 필드에 광물이 ${hp.needsMinerals}개 이상 있어야 합니다.` };
+  if (hp.workshop) {
+    const nm = p.board.filter(m => isUnit(m) && CARDS[m.id].mineral).length;
+    const nu = p.board.filter(m => isUnit(m) && CARDS[m.id].upgrade).length;
+    if (!(nm >= 2 || (nm >= 1 && nu >= 1))) return { ok: false, reason: '조립하려면 광물 2개, 또는 광물 1개 + 녹슨 포탑·진화 포탑·진화 로봇이 필요합니다.' };
+  }
   if (hp.target && !validTargets(s, pi, hp.target).length) return { ok: false, reason: '사용할 대상이 없습니다.' };
   return { ok: true };
 }
@@ -825,7 +859,7 @@ function fireTurrets(s, pi) {
       dealDamage(s, r, n);
       if (c.turretFreeze && r[0] === 'm') { const t = getChar(s, r); if (t && isUnit(t.m)) { t.m.frozen = true; ev(s, { type: 'freeze', ref: r }); } }
     };
-    if (c.turret) shot(randomEnemy(), c.turret);
+    if (c.turret) shot(randomEnemy(), c.turret + (m.turretBonus || 0));
     if (c.turretMulti) for (let i = 0; i < c.turretMulti.count; i++) shot(randomEnemy(), c.turretMulti.n);
     if (c.turretFace) shot('h' + op.idx, c.turretFace);
     if (c.turretAll) {

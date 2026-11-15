@@ -131,7 +131,8 @@ function minionHTML(m, owner) {
   if (c.onTurnEnd || c.onTurnStart || c.onSpell) badges.push('⚡');
   if (c.grow) badges.push(`<span class="grow">🌱${c.grow.turns - (m.age || 0)}</span>`);
   if (c.mineral) badges.push(`<span class="mineral">⛏${c.mineral}</span>`);
-  if (c.turret) badges.push(`<span class="turret">🎯${c.turret}</span>`);
+  if (c.turret) badges.push(`<span class="turret">🎯${c.turret + (m.turretBonus || 0)}</span>`);
+  if (m.level > 1) badges.push(`<span class="lvl">Lv.${m.level}</span>`);
   if (c.turretAll) badges.push(`<span class="turret">🔥전체${c.turretAll}</span>`);
   badges.push(poisonBadges(m.poisons));
   if (m.frozen) badges.push('❄️');
@@ -371,6 +372,28 @@ function flameBurst(from, pi, prev) {
     }, 60 + i * 40);
   });
 }
+// 광석이 기계로 날아가 발리는 연출
+function playUpgrade(e, prev) {
+  const r = prev[e.ore], html = prev._html && prev._html[e.ore], target = elByRef(e.ref);
+  if (r && html && target) {
+    const tr = target.getBoundingClientRect();
+    const g = ghostAt(html, r);
+    g.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${(tr.left - r.left) / 2}px, ${(tr.top - r.top) / 2 - 40}px) scale(.7) rotate(160deg)`, opacity: 1 },
+      { transform: `translate(${tr.left - r.left}px, ${tr.top - r.top}px) scale(.2) rotate(320deg)`, opacity: 0 }],
+      { duration: 600, easing: 'ease-in', fill: 'forwards' });
+    setTimeout(() => g.remove(), 620);
+  }
+  setTimeout(() => {
+    const t = elByRef(e.ref);
+    if (!t) return;
+    t.animate([{ transform: 'scale(1)', filter: 'brightness(1)' }, { transform: 'scale(1.25)', filter: 'brightness(1.8) drop-shadow(0 0 14px #ffd166)' }, { transform: 'scale(1)', filter: 'brightness(1)' }], { duration: 450 });
+    const tr = t.getBoundingClientRect();
+    impactBurst(tr.left + tr.width / 2, tr.top + tr.height / 2, { color: '#ffe08a', glow: '#ffb300' });
+    floatText(tr, e.label, 'heal');
+  }, 600);
+}
+
 function playAssemble(e, prev) {
   const target = elByRef(e.ref);
   const tr = target ? target.getBoundingClientRect() : null;
@@ -605,6 +628,7 @@ function playEvents(evs, prev) {
       case 'shield': later(() => floatText(rectOf(e.ref, prev), '보호막!', 'info'), sd != null ? sd : hitDelay(e.ref)); break;
       case 'death': later(() => floatText(rectOf(e.ref, prev), '💥', 'boom'), sd != null ? sd : atk ? DEATH_AT : 300); break;
       case 'assemble': playAssemble(e, prev); break;
+      case 'upgrade': playUpgrade(e, prev); break;
       case 'poison': floatText(rectOf(e.ref, prev), POISON_INFO[e.kind].icon + (e.adv ? ' 상급 ' : ' ') + POISON_INFO[e.kind].name, 'info'); break;
       case 'poisonTick': later(() => floatText(rectOf(e.ref, prev), POISON_INFO[e.kind].icon + ' -' + e.n, 'dmg'), POISON_KINDS.indexOf(e.kind) * 250); break;
       case 'mutate': later(() => floatText(rectOf(e.ref, prev), '🧬 +' + e.n + '/+' + e.n, 'heal'), POISON_KINDS.indexOf(e.kind) * 250); break;
