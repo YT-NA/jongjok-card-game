@@ -475,9 +475,10 @@ function playEvents(evs, prev) {
   let shotIdx = 0, shotHit = null;
   const delayOf = new Map();
   for (const e of evs) {
-    if (e.type === 'shoot' || e.type === 'shootAll') {
+    if (e.type === 'shoot' || e.type === 'shootAll' || e.type === 'rampage') {
       const at = shotIdx++ * SHOT_GAP;
       if (e.type === 'shoot') later(() => fireProjectile(e.from, e.to, prev), at);
+      else if (e.type === 'rampage') later(() => { floatText(rectOf(e.from, prev), '🐯 분노!', 'dmg'); lunge(e.from, e.to); }, at);
       else later(() => flameBurst(e.from, e.pi, prev), at);
       shotHit = at + SHOT_HIT;
     } else if (shotHit != null) delayOf.set(e, shotHit + (e.type === 'death' ? 150 : 0));
@@ -496,7 +497,8 @@ function playEvents(evs, prev) {
   for (const e of evs) {
     const sd = delayOf.get(e);
     switch (e.type) {
-      case 'attack': case 'shoot': case 'shootAll': break;
+      case 'attack': case 'shoot': case 'shootAll': case 'rampage': break;
+      case 'rage': toast('👰💔 신부가 쓰러졌다! 호랑이들이 미쳐 날뛴다!', 2400); break;
       case 'dmg': later(() => {
         const counter = atk && e.ref === atk.from;
         floatText(rectOf(e.ref, prev), (counter ? '반격 -' : '-') + e.n, 'dmg');

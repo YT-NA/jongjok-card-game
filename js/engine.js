@@ -502,6 +502,26 @@ function applyEffect(s, e, ctx) {
       log(s, `🔧 [${CARDS[a.id].name}] + [${CARDS[b.id].name}] → [${CARDS[id].name}] 조립!`);
       break;
     }
+    case 'rampage': {
+      // 호랑이 신부가 죽으면: 다른 아군 호랑이들이 미쳐서 각자 무작위 적을 공격 (도발 무시, 반격은 받음)
+      const tigers = me.board.filter(isTiger);
+      if (tigers.length) ev(s, { type: 'rage', pi: ctx.pi });
+      for (const t of tigers) {
+        if (!isUnit(t) || t.atk <= 0) continue;
+        const cands = op.board.filter(isUnit).map(m => 'm' + m.uid);
+        if (op.hp > 0) cands.push('h' + op.idx);
+        const r = pick(cands);
+        if (!r) break;
+        ev(s, { type: 'rampage', from: 'm' + t.uid, to: r });
+        log(s, `🐯 [${CARDS[t.id].name}]이(가) 미쳐서 ${charName(s, r)}을(를) 공격!`);
+        const c = getChar(s, r);
+        if (c.hero) dealDamage(s, r, t.atk);
+        else { const back = c.m.atk; dealDamage(s, r, t.atk, { poison: t.poison }); dealDamage(s, 'm' + t.uid, back, { poison: c.m.poison }); }
+        checkWinner(s);
+        if (s.winner != null) break;
+      }
+      break;
+    }
     case 'tutor': {
       // 덱(3개 페이즈 더미 전체)에서 조건에 맞는 카드 1장을 찾아 손으로
       const ok = id => { const c = CARDS[id]; return e.tag === 'abduct' && (c.battlecry || []).some(x => x.t === 'abduct'); };
