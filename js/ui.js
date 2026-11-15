@@ -229,6 +229,11 @@ function render() {
   et.classList.toggle('waiting', !myTurn);
   et.classList.toggle('done', myTurn && !hasMovesLeft());
   et.textContent = myTurn ? '턴 종료' : '상대 턴';
+  // 날씨 표시: 날씨를 건 사람 기준으로 남은 턴
+  const wp = s.players.find(p => p.weather);
+  const bd = $('#boards');
+  if (wp) { bd.dataset.weather = `${WEATHER_INFO[wp.weather.id].icon} ${WEATHER_INFO[wp.weather.id].name} · ${wp.idx === App.me ? '내' : '상대'} 날씨 · ${wp.weather.left}턴 남음`; bd.classList.add('weather-sunshower'); }
+  else { delete bd.dataset.weather; bd.classList.remove('weather-sunshower'); }
   $('#turnInfo').innerHTML = s.winner != null ? '게임 종료' : (myTurn ? '<span style="color:#7dff8f">내 턴</span>' : `${esc(s.players[s.current].name)}의 턴`);
   $('#log').innerHTML = s.log.slice(-14).map(l => `<div>${esc(l)}</div>`).join('');
 
@@ -515,6 +520,10 @@ function playEvents(evs, prev) {
       case 'freeze': floatText(rectOf(e.ref, prev), '❄ 빙결', 'info'); break;
       case 'buff': floatText(rectOf(e.ref, prev), '▲', 'heal'); break;
       case 'grow': floatText(rectOf(e.ref, prev), '🌱 성장!', 'heal'); break;
+      case 'weather': banner(`${WEATHER_INFO[e.id].icon} ${WEATHER_INFO[e.id].name}!`); break;
+      case 'weatherEnd': toast('🌤️ 날씨가 개었습니다', 1500); break;
+      case 'gainKw': floatText(rectOf(e.ref, prev), e.label, 'heal'); break;
+      case 'scramble': later(() => { floatText(rectOf(e.ref, prev), '🔀 뒤죽박죽', 'info'); shake(e.ref); }, 200); break;
       case 'herbEat': floatText(rectOf(e.ref, prev), '🌿🧄 냠 +1/+1', 'heal'); break;
       case 'tutor': if (e.pi === App.me) toast(`🐾 [${CARDS[e.id].name}]을(를) 찾아왔습니다!`); break;
       case 'feedGrow': floatText(rectOf(e.ref, prev), '🌱 성장 1턴 빨라짐', 'heal'); break;

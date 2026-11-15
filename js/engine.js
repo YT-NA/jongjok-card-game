@@ -67,7 +67,7 @@ function createGame(a, b, first) {
   [a, b].forEach((p, i) => s.players.push({
     idx: i, name: p.name, race: p.race, hp: HERO_HP, maxHp: HERO_HP, mana: 0, maxMana: 0,
     piles: buildPiles(p.race), hand: [], board: [], fatigue: 0, heroPowerUsed: false,
-    ssuk: 0, garlic: 0, cave: [], poisons: {},
+    ssuk: 0, garlic: 0, cave: [], poisons: {}, weather: null,
   }));
   if (first == null) first = rnd(2);
   s.current = first;
@@ -502,6 +502,11 @@ function applyEffect(s, e, ctx) {
       log(s, `🔧 [${CARDS[a.id].name}] + [${CARDS[b.id].name}] → [${CARDS[id].name}] 조립!`);
       break;
     }
+    case 'weather':
+      // 날씨: 이번 턴에 바로 1번 발동, 남은 횟수는 다음 내 턴들에 발동
+      me.weather = { id: e.id, left: e.turns - 1 };
+      applyWeather(s, ctx.pi, e.id);
+      break;
     case 'rampage': {
       // 호랑이 신부가 죽으면: 다른 아군 호랑이들이 미쳐서 각자 무작위 적을 공격 (도발 무시, 반격은 받음)
       const tigers = me.board.filter(isTiger);
@@ -693,6 +698,7 @@ function startTurn(s) {
   resolveDeaths(s);
   if (s.winner != null) return;
   processCave(s, pi);
+  processWeather(s, pi);
   drawCard(s, pi);
   checkWinner(s);
 }
@@ -705,6 +711,41 @@ function gainHerb(s, pi, ssuk, garlic) {
 }
 
 // 동굴 속 짝: 2턴 지나고, 쑥 1 + 마늘 1을 먹으면 나와서 결혼
+// ───────────── 날씨 ─────────────
+const WEATHER_INFO = { sunshower: { name: '호랑이 장가가는 날', icon: '🌦️' } };
+function processWeather(s, pi) {
+  const p = s.players[pi], w = p.weather;
+  if (!w) return;
+  if (w.left <= 0) { p.weather = null; ev(s, { type: 'weatherEnd', pi }); return; }
+  w.left--;
+  applyWeather(s, pi, w.id);
+  if (w.left <= 0) p.weather = null;
+}
+function applyWeather(s, pi, id) {
+  const me = s.players[pi], op = s.players[1 - pi];
+  ev(s, { type: 'weather', pi, id, left: me.weather ? me.weather.left : 0 });
+  if (id === 'sunshower') {
+    // 내 호랑이들: 무작위로 은신 또는 보호막
+    me.board.filter(isTiger).forEach(t => {
+      if (Math.random() < 0.5) { t.stealth = true; ev(s, { type: 'gainKw', ref: 'm' + t.uid, label: '👻 은신' }); }
+      else { t.shield = true; ev(s, { type: 'gainKw', ref: 'm' + t.uid, label: '🛡️ 보호막' }); }
+    });
+    // 적 소환물들: 공격력·생명력 숫자를 모두 모아 섞어서 다시 나눔
+    const foes = op.board.filter(isUnit);
+    if (!foes.length) return;
+    const nums = [];
+    foes.forEach(m => nums.push(m.atk, m.hp));
+    shuffle(nums);
+    foes.forEach((m, i) => {
+      m.atk = Math.max(0, nums[2 * i]);
+      m.hp = Math.max(1, nums[2 * i + 1]);
+      m.maxHp = Math.max(m.maxHp, m.hp);
+      ev(s, { type: 'scramble', ref: 'm' + m.uid });
+    });
+    log(s, `🌦️ 호랑이 장가가는 날: 적 소환물들의 능력치가 뒤죽박죽!`);
+  }
+}
+
 function processCave(s, pi) {
   const p = s.players[pi];
   for (const pair of [...p.cave]) {
