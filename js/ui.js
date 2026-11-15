@@ -29,10 +29,11 @@ $('#nameInput').addEventListener('change', () => { try { localStorage.setItem('j
 const TOUCH = window.matchMedia('(hover: none)').matches;
 if (TOUCH) document.body.classList.add('touch');
 
-function goFullscreen() {
+function goFullscreen(silent) {
   const el = document.documentElement;
   const req = el.requestFullscreen || el.webkitRequestFullscreen;
-  if (!req) return toast('이 기기는 전체화면을 지원하지 않습니다. 휴대폰을 가로로 돌려주세요.');
+  if (!req) { if (!silent) toast('이 기기는 전체화면을 지원하지 않습니다. 휴대폰을 가로로 돌려주세요.'); return; }
+  if (document.fullscreenElement) { try { screen.orientation.lock('landscape').catch(() => {}); } catch (_) {} return; }
   Promise.resolve(req.call(el)).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (_) {} }).catch(() => {});
 }
 
@@ -1099,8 +1100,11 @@ if (window.JJ_NO_ONLINE) {
   note.innerHTML = '🌐 이 웹 버전에서는 <b>친구와 온라인 전장</b>이 안 됩니다.<br>전장 연습(나 + AI 7명)과 1:1 연습은 모두 할 수 있어요.';
   $('.menu-btns').prepend(note);
 }
-$('#btnFull').onclick = goFullscreen;
-$('#btnFull2').onclick = goFullscreen;
+if (TOUCH) {
+  document.addEventListener('pointerup', () => { if (!document.fullscreenElement) goFullscreen(true); }, true);
+}
+$('#btnFull').onclick = () => goFullscreen();
+$('#btnFull2').onclick = () => goFullscreen();
 
 window.addEventListener('beforeunload', () => Net.close());
 show('menu');

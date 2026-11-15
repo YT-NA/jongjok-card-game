@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2e2742"/>
+  <rect x="120" y="96" width="200" height="290" rx="22" fill="#5b3d8a" stroke="#c9a45c" stroke-width="12" transform="rotate(-12 220 241)"/>
+  <rect x="190" y="120" width="200" height="290" rx="22" fill="#d9761c" stroke="#c9a45c" stroke-width="12" transform="rotate(8 290 265)"/>
+  <text x="290" y="300" font-size="150" text-anchor="middle" font-family="sans-serif" transform="rotate(8 290 265)">⚔</text>
+</svg>
