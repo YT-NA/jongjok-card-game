@@ -690,6 +690,7 @@ $('#game').addEventListener('click', e => {
   if (!App.state) return;
   if (e.target.closest('#endTurn')) { if (isMyTurn()) act({ type: 'end' }); return; }
   if (e.target.closest('#menuBtn')) return openGameMenu();
+  if (e.target.closest('#fsBtn')) return goFullscreen();
   if (TOUCH && !e.target.closest('[data-hand]') && !e.target.closest('[data-ref]') && App.inspect != null && App.inspect !== 'hp' && !e.target.closest('[data-hpower]')) { App.inspect = null; $('#preview').innerHTML = ''; render(); }
   const refEl = e.target.closest('[data-ref]');
   if (refEl) return onRef(refEl.dataset.ref);

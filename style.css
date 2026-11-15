@@ -458,3 +458,22 @@ body.touch #preview { --u: min(3.3vh, 1.9vw); left: 50%; top: 45%; transform: tr
 .c-art, .m-art { position: relative; }
 .c-art .art-sub { position: absolute; right: 12%; bottom: 2%; font-size: .5em; filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 2px #000); }
 .m-art .art-sub { position: absolute; right: -22%; bottom: -8%; font-size: .5em; filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 2px #000); }
+
+/* ───────── 휴대폰 가로(키 낮은 화면): 카드를 크게 ───────── */
+@media (max-height: 520px) {
+  #topArea { height: calc(15 * var(--u)); }
+  #oppHand { height: calc(4 * var(--u)); padding-top: calc(.3 * var(--u)); }
+  .cback { width: calc(3 * var(--u)); height: calc(4.2 * var(--u)); }
+  .hero { width: calc(9 * var(--u)); height: calc(9 * var(--u)); }
+  .portrait { font-size: calc(5 * var(--u)); }
+  #bottomArea { height: calc(36 * var(--u)); }
+  #myZone { height: calc(10 * var(--u)); }
+  #leftCol, #rightCol { width: calc(15 * var(--u)); }
+  /* 손패 카드: 약 1.5배, 아래쪽은 화면 밖으로 살짝 걸침 (탭하면 크게) */
+  #myHand { --u: min(1.5vh, .82vw); margin-bottom: calc(-2 * min(1.5vh, .82vw)); }
+  #myHand .c-text { font-size: calc(1.25 * var(--u)); }
+  /* 전장 소환물: 약 1.3배 */
+  #boards { --u: min(1.65vh, .9vw); }
+  .board-row { min-height: calc(14 * var(--u)); gap: calc(1 * var(--u)); }
+}
+#fsBtn { background: none; border: none; color: var(--txt); font-size: calc(3 * var(--u)); opacity: .7; }
