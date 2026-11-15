@@ -539,3 +539,31 @@ body.touch #preview { --u: min(2.8vh, 1.6vw); left: max(8px, env(safe-area-inset
 @media (prefers-reduced-motion: reduce) { .trail-dot, .spark-dot { display: none; } }
 
 .m-badges .lvl { color: #ffd166; }
+
+/* ───────── 휴대폰: 종족 선택을 한 화면에 ───────── */
+@media (max-height: 520px), (max-width: 560px) {
+  #raceSelect { gap: 6px; padding-block: 8px; justify-content: flex-start; }
+  #raceTitle { font-size: 18px; }
+  #raceStatus { font-size: 12px; min-height: 0; }
+  #raceList { gap: 8px; width: 100%; }
+  .race-card { padding: 8px 6px; gap: 4px; border-width: 2px; border-radius: 12px; min-width: 0; }
+  .race-emoji { font-size: 32px; line-height: 1.1; }
+  .race-name { font-size: 16px; }
+  .race-desc { display: none; }
+  .race-style { font-size: 10.5px; line-height: 1.3; }
+  .race-power { font-size: 10px; padding: 4px 5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .race-btns { flex-direction: column; gap: 4px; width: 100%; }
+  .race-btns .btn { padding: 5px 6px; font-size: 12px; border-width: 1px; }
+  .taken-label, .mine-label { padding: 5px; font-size: 11px; }
+  .race-note { font-size: 10px; padding: 2px 4px; }
+  #raceBack { padding: 4px 14px; font-size: 13px; }
+}
+/* 가로 휴대폰: 6종족 한 줄 */
+@media (max-height: 520px) { #raceList { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+/* 세로 휴대폰: 2열 × 3줄 */
+@media (max-width: 560px) and (min-height: 521px) { #raceList { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) and (min-height: 521px) {
+  .race-emoji { font-size: 26px; }
+  .race-power { -webkit-line-clamp: 3; }
+  #raceSelect { gap: 4px; }
+}
