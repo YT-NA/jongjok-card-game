@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>종족대전</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 메인 메뉴 -->
+<div id="menu" class="screen">
+  <div class="title-emojis">🐷 🦎 🦉 🧚 🐯 ⚒️</div>
+  <h1 class="title">종족대전</h1>
+  <p class="subtitle">돼지 · 코볼트 · 아울 · 페어리 · 호랑이 · 드워프 — 최대 8인 전장 카드 배틀</p>
+  <label class="name-row">내 이름 <input id="nameInput" maxlength="10" placeholder="플레이어"></label>
+  <div class="rank-badge">🏆 내 랭크 점수 <b id="menuRating">1000</b></div>
+  <div class="menu-btns">
+    <button class="btn big" id="btnHost">⚔ 전장 만들기 (온라인 · 최대 8명)</button>
+    <button class="btn big" id="btnJoin">🔗 전장 참가 (온라인)</button>
+    <button class="btn" id="btnArenaPractice">🏟 전장 연습 (나 + AI 7명)</button>
+    <button class="btn" id="btnAI">🤖 연습 게임 (1:1 AI)</button>
+    <button class="btn ghost" id="btnCodex">📖 카드 도감</button>
+    <button class="btn ghost" id="btnRules">❓ 게임 방법</button>
+    <button class="btn ghost touch-only" id="btnFull">📱 전체화면 (가로로 하기)</button>
+  </div>
+</div>
+
+<!-- 종족 선택 -->
+<div id="raceSelect" class="screen hidden">
+  <h2 id="raceTitle">종족 선택</h2>
+  <div id="raceStatus" class="status"></div>
+  <div id="raceList"></div>
+  <button class="btn ghost" id="raceBack">← 뒤로</button>
+</div>
+
+<!-- 온라인 대기실 -->
+<div id="lobby" class="screen hidden">
+  <h2 id="lobbyTitle">온라인</h2>
+  <div id="lobbyBody"></div>
+  <button class="btn ghost" id="lobbyBack">← 메인으로</button>
+</div>
+
+<!-- 게임 화면 -->
+<div id="game" class="hidden">
+  <div id="topArea">
+    <div id="oppHand" class="hand-row"></div>
+    <div id="oppZone" class="hero-zone"></div>
+  </div>
+  <div id="mid">
+    <div id="leftCol">
+      <button id="menuBtn" title="메뉴">⚙</button>
+      <div id="log"></div>
+    </div>
+    <div id="boards">
+      <div id="oppBoard" class="board-row"></div>
+      <div class="divider"></div>
+      <div id="myBoard" class="board-row"></div>
+    </div>
+    <div id="rightCol">
+      <div class="deck-wrap"><div class="deck" id="oppDeck"></div><span id="oppDeckLabel">상대 덱</span></div>
+      <div id="turnInfo"></div>
+      <button id="endTurn">턴 종료</button>
+      <div class="deck-wrap"><div class="deck" id="myDeck"></div><span id="myDeckLabel">내 덱</span></div>
+    </div>
+  </div>
+  <div id="bottomArea">
+    <div id="myZone" class="hero-zone"></div>
+    <div id="myHand" class="hand-row"></div>
+  </div>
+</div>
+
+<div id="preview"></div>
+<div id="played"></div>
+<div id="banner"></div>
+<div id="toast"></div>
+<div id="fx"></div>
+<div id="overlay" class="hidden"></div>
+<div id="rotateHint"><div class="rot-icon">📱↻</div><div>휴대폰을 <b>가로</b>로 돌려주세요</div><button class="btn primary" id="btnFull2">전체화면으로 하기</button></div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/arena.js"></script>
+</body>
+</html>
