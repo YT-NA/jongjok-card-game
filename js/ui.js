@@ -533,7 +533,7 @@ function playEvents(evs, prev) {
       case 'wedding':
         banner('💒 결혼식!');
         later(() => { floatText(rectOf(e.tiger, prev), '💒 결혼!', 'heal'); floatText(rectOf(e.spouse, prev), '💍', 'heal'); }, 200);
-        toast(`💒 [${CARDS[e.captiveId].name}]이(가) 쑥과 마늘을 먹고 사람이 되어 [${CARDS[e.tigerId].name}]와(과) 결혼했습니다!`, 3200);
+        toast(`💒 [${CARDS[e.captiveId].name}]이(가) 사람이 되어 [${CARDS[e.tigerId].name}]와(과) 결혼! 👰 신부 버프: ${e.buff || ''}`, 3400);
         break;
       case 'debuff': floatText(rectOf(e.ref, prev), '▼', 'dmg'); break;
       case 'steal': toast(`🧠 [${CARDS[getChar(s, e.ref)?.m?.id]?.name || '소환물'}]을(를) 빼앗았습니다!`); break;
@@ -748,6 +748,7 @@ $('#game').addEventListener('mouseover', e => {
       const gc = CARDS[m.id].grow;
       if (gc) extra.push(`🌱 ${gc.turns - (m.age || 0)}턴 뒤 ${[].concat(gc.into).map(id => '[' + CARDS[id].name + ']').join(' 또는 ')}(으)로 성장`);
       if (m.fromId) extra.push(`💍 원래는 [${CARDS[m.fromId].name}]이었음`);
+      if (m.brideBuff) extra.push(`👰 신부 버프: ${m.brideBuff}`);
       pv.innerHTML = cardHTML(m.id) + (extra.length ? `<div style="margin-top:8px;font-weight:700;text-align:center;font-size:13px;text-shadow:0 1px 3px #000">${extra.join('<br>')}</div>` : '');
       return;
     }

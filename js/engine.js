@@ -306,6 +306,7 @@ function resolveTo(s, to, ctx) {
     case 'randomEnemyMinion': return one(pick(refs(op)));
     case 'randomEnemy': return one(pick([...refs(op), 'h' + op.idx]));
     case 'randomFriendlyMinion': return one(pick(refs(me).filter(r => r !== selfRef)));
+    case 'friendlyTigers': return me.board.filter(isTiger).map(m => 'm' + m.uid);
   }
   return [];
 }
@@ -703,6 +704,16 @@ function canEmerge(p) {
   return p.board.length - vanish + 2 <= MAX_BOARD;
 }
 
+// 호랑이 신부 버프: 끌려온 적의 종족별로 둘 중 하나
+const BRIDE_BUFFS = {
+  human: [{ name: '번식력 (턴 끝마다 아기 호랑이 출산)', endTurn: [{ t: 'summon', id: 't_cub', n: 1 }] }, { name: '튼튼함 +0/+3', hp: 3 }],
+  kobold: [{ name: '주문 공격력 +1', sd: 1 }, { name: '마법 손톱 +2/+0', atk: 2 }],
+  owl: [{ name: '우주 보호막', kw: ['shield'] }, { name: '별의 힘 +2/+2', atk: 2, hp: 2 }],
+  fairy: [{ name: '독성', kw: ['poison'] }, { name: '은신', kw: ['stealth'] }],
+  dwarf: [{ name: '광물 몸 (도발, +0/+2)', kw: ['taunt'], hp: 2 }, { name: '강철 피부 +1/+3', atk: 1, hp: 3 }],
+  tiger: [{ name: '도발', kw: ['taunt'] }, { name: '+1/+2', atk: 1, hp: 2 }],
+};
+
 function emergePair(s, pi, pair) {
   const p = s.players[pi];
   const i = p.cave.indexOf(pair);
@@ -712,16 +723,26 @@ function emergePair(s, pi, pair) {
   let pos = caveM ? p.board.indexOf(caveM) + 1 : p.board.length;
   if (caveM && !p.cave.length) { p.board.splice(pos - 1, 1); pos--; ev(s, { type: 'caveGone', ref: 'm' + caveM.uid }); }
   const t = pair.tiger;
-  t.atk += 1; t.hp += 1; t.maxHp += 1;
+  // (신랑 호랑이 +1/+1은 신부 버프로 대체)
   t.frozen = false; t.sleeping = false; t.attacksLeft = 1; t.dead = false;
   const sp = makeMinion(s, 't_spouse');
-  sp.atk = Math.max(1, pair.captive.atk);
-  sp.maxHp = Math.max(1, pair.captive.maxHp);
+  // 신부 기본 능력치: 끌려온 적보다 1씩 낮게 (최소 1) + 신부 버프
+  sp.atk = Math.max(1, pair.captive.atk - 1);
+  sp.maxHp = Math.max(1, pair.captive.maxHp - 1);
   sp.hp = sp.maxHp;
   sp.sleeping = false;
   sp.fromId = pair.captive.id;
+  // 끌려온 적의 종족에 따라 신부 버프 (둘 중 무작위)
+  const pool = BRIDE_BUFFS[CARDS[pair.captive.id].race] || [].concat(...Object.values(BRIDE_BUFFS));
+  const bb = pick(pool);
+  sp.atk += bb.atk || 0; sp.hp += bb.hp || 0; sp.maxHp += bb.hp || 0;
+  sp.spellDmg += bb.sd || 0;
+  (bb.kw || []).forEach(k => { sp[k] = true; });
+  if (bb.endTurn) sp.extraEndTurn = bb.endTurn;
+  sp.brideBuff = bb.name;
   p.board.splice(pos, 0, t, sp);
-  ev(s, { type: 'wedding', pi, tiger: 'm' + t.uid, spouse: 'm' + sp.uid, tigerId: t.id, captiveId: pair.captive.id });
+  ev(s, { type: 'wedding', pi, tiger: 'm' + t.uid, spouse: 'm' + sp.uid, tigerId: t.id, captiveId: pair.captive.id, buff: bb.name });
+  log(s, `👰 신부 버프: ${bb.name}`);
   log(s, `💒 [${CARDS[t.id].name}] ♥ 사람이 된 [${CARDS[pair.captive.id].name}] 결혼!`);
   return true;
 }
@@ -825,6 +846,7 @@ function endTurn(s, pi) {
   for (const m of [...p.board]) {
     const c = CARDS[m.id];
     if (c.onTurnEnd && alive(m)) runEffects(s, c.onTurnEnd, { pi, source: m, target: null, isSpell: false });
+    if (m.extraEndTurn && alive(m)) runEffects(s, m.extraEndTurn, { pi, source: m, target: null, isSpell: false });
   }
   resolveDeaths(s);
   if (s.winner != null) return;
