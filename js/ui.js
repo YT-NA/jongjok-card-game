@@ -670,7 +670,10 @@ function onRef(ref) {
         clearSel();
         App.sel = c.m.uid;
         App.targets = attackTargets(s, App.me);
-        return render();
+        $('#preview').innerHTML = '';
+        render();
+        if (TOUCH) toast('⚔ 공격할 적을 누르세요 (끌어서 놓아도 됩니다)', 1500);
+        return;
       }
       clearSel(); render();
       const m = c.m;
@@ -716,6 +719,10 @@ $('#game').addEventListener('mouseover', e => {
   const pv = $('#preview');
   if (TOUCH) {
     if (e.target.closest('[data-hand]') || (App.inspect != null && App.inspect !== 'hp')) return;
+    // 공격 대상 고르는 중이거나, 공격할 수 있는 내 소환물을 누른 경우엔 크게 보기를 띄우지 않음 (적을 가리지 않게)
+    const tEl = e.target.closest('[data-ref]');
+    const tc = tEl && getChar(s, tEl.dataset.ref);
+    if (App.sel != null || App.pending || (tc && !tc.hero && tc.pi === App.me && isMyTurn() && canAttack(tc.m))) { pv.innerHTML = ''; return; }
     clearTimeout(pvTimer);
     pvTimer = setTimeout(() => { if (App.inspect == null || App.inspect === 'hp') pv.innerHTML = ''; }, 2600);
   }

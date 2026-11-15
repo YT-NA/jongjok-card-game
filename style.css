@@ -428,7 +428,7 @@ html, body { touch-action: manipulation; overscroll-behavior: none; -webkit-tap-
 .touch-only { display: none; }
 body.touch .touch-only { display: inline-block; }
 /* 터치 기기: 크게 보기 카드를 화면 가운데에 크게 */
-body.touch #preview { --u: min(3.3vh, 1.9vw); left: 50%; top: 45%; transform: translate(-50%, -50%); }
+body.touch #preview { --u: min(2.8vh, 1.6vw); left: max(8px, env(safe-area-inset-left, 0px)); top: 50%; transform: translateY(-50%); }
 /* 키가 낮은 화면(휴대폰 가로): 로그 숨기고 글씨 조금 키우기 */
 @media (max-height: 520px) {
   #log { display: none; }
@@ -489,3 +489,15 @@ body.touch #preview { --u: min(3.3vh, 1.9vw); left: 50%; top: 45%; transform: tr
 #boards.drop-zone { outline: 3px dashed rgba(255, 225, 77, .35); outline-offset: -6px; border-radius: 18px; }
 #boards.drop-zone.drop-hover-zone { outline-color: #ffe14d; background: radial-gradient(ellipse at center, rgba(255, 225, 77, .14), transparent 70%); }
 .drop-hover { transform: scale(1.12) !important; box-shadow: 0 0 calc(2 * var(--u)) calc(.8 * var(--u)) #ffe14d !important; }
+
+/* 휴대폰 가로: 턴 종료·영웅 능력 버튼 크게 */
+@media (max-height: 520px) {
+  #rightCol { width: calc(21 * var(--u)); gap: calc(.6 * var(--u)); }
+  #endTurn {
+    width: calc(20 * var(--u)); height: calc(13 * var(--u)); border-radius: calc(6.5 * var(--u));
+    font-size: calc(3.4 * var(--u)); border-width: calc(.5 * var(--u));
+  }
+  .deck { width: calc(5 * var(--u)); height: calc(7 * var(--u)); font-size: calc(2.2 * var(--u)); }
+  .deck-wrap span { display: none; }
+  .hpower { width: calc(9.5 * var(--u)); height: calc(9.5 * var(--u)); font-size: calc(4.4 * var(--u)); }
+}
