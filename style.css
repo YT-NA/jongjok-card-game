@@ -572,3 +572,13 @@ body.touch #preview { --u: min(2.8vh, 1.6vw); left: max(8px, env(safe-area-inset
 .title { line-height: 1.05; text-align: center; letter-spacing: 3px; }
 .title .title-pre { display: block; font-size: .42em; letter-spacing: .5em; margin-bottom: .05em; }
 @media (max-height: 520px) { .title { font-size: clamp(32px, 7vw, 56px); } }
+
+/* 아울: 낮/밤 */
+.owl-time { white-space: nowrap; margin-top: 4px; font-size: 12px; font-weight: 900; border-radius: 999px; padding: 2px 8px; display: inline-block; }
+.owl-time.day { background: rgba(255, 214, 102, .18); color: #ffe08a; border: 1px solid #ffd166; }
+.owl-time.night { background: rgba(80, 70, 200, .35); color: #cfc8ff; border: 1px solid #8f84ff; box-shadow: 0 0 10px rgba(143, 132, 255, .6); }
+body.flash-night::after, body.flash-day::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50; animation: dnflash .9s ease-out forwards; }
+body.flash-night::after { background: radial-gradient(circle at 50% 30%, rgba(40, 30, 120, .55), rgba(5, 5, 30, .7)); }
+body.flash-day::after { background: radial-gradient(circle at 50% 20%, rgba(255, 230, 140, .55), rgba(255, 200, 80, .15)); }
+@keyframes dnflash { from { opacity: 1; } to { opacity: 0; } }
+@media (max-height: 520px) { .owl-time { font-size: 10px; padding: 1px 6px; margin-top: 2px; } }

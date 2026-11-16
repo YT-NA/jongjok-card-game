@@ -63,8 +63,18 @@ function aiAttackTarget(s, pi, m, ts) {
   return ms.length ? 'm' + ms[0].uid : null;
 }
 
+// 아울: 깨어 있는(이번 턴 공격 가능한) 부엉이가 있으면 밤으로, 공격을 다 했으면 낮으로 (방어)
+function aiOwlFlip(s, pi, phase) {
+  const p = s.players[pi];
+  if (p.race !== 'owl' || !canHeroPower(s, pi).ok) return false;
+  const ready = p.board.filter(m => isUnit(m) && isOwl(m) && !isMineral(m) && m.attacksLeft > 0 && !m.frozen && (!m.sleeping || m.charge));
+  if (phase === 'start') return p.time === 'day' && ready.length >= 1;
+  return p.time === 'night' && !p.board.some(canAttack) && p.board.some(m => isUnit(m) && isOwl(m));
+}
+
 function aiChoose(s, pi) {
   const p = s.players[pi];
+  if (aiOwlFlip(s, pi, 'start')) return { type: 'hero' };
   // 1) 카드 내기 (비싼 카드부터)
   const hand = [...p.hand].sort((a, b) => CARDS[b.id].cost - CARDS[a.id].cost);
   for (const h of hand) {
@@ -95,7 +105,7 @@ function aiChoose(s, pi) {
     } else if (hp.target) {
       const t = aiPickTarget(s, pi, hp.target, hp.effects, false);
       if (t) return { type: 'hero', target: t };
-    } else return { type: 'hero' };
+    } else if (p.race !== 'owl') return { type: 'hero' };
   }
   // 3) 공격
   for (const m of p.board) {
@@ -103,5 +113,6 @@ function aiChoose(s, pi) {
     const t = aiAttackTarget(s, pi, m, attackTargets(s, pi));
     if (t) return { type: 'attack', uid: m.uid, target: t };
   }
+  if (aiOwlFlip(s, pi, 'end')) return { type: 'hero' };
   return { type: 'end' };
 }

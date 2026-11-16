@@ -136,7 +136,7 @@ function minionHTML(m, owner) {
   if (c.turretAll) badges.push(`<span class="turret">🔥전체${c.turretAll}</span>`);
   badges.push(poisonBadges(m.poisons));
   if (m.frozen) badges.push('❄️');
-  const sleeping = m.sleeping && !m.charge && owner === App.state.current;
+  const sleeping = (m.sleeping && !m.charge && owner === App.state.current) || m.dozing;
   const atkCls = m.atk > c.atk ? 'buffed' : m.atk < c.atk ? 'debuffed' : '';
   const hpCls = m.hp < m.maxHp ? 'hurt' : m.maxHp > c.hp ? 'buffed' : '';
   return `<div class="${cls.join(' ')}" data-ref="m${m.uid}" style="--rc:${r.color}">
@@ -155,7 +155,7 @@ function heroZoneHTML(p, isMe) {
   const crystals = Array.from({ length: 10 }, (_, i) =>
     `<i class="${i < p.mana ? 'full' : i < p.maxMana ? 'empty' : 'none'}"></i>`).join('');
   return `<div class="hz-inner">
-    <div class="hero-info"><div class="hero-name">${esc(p.name)}</div><div class="hero-race">${r.name} · 손패 ${p.hand.length}</div>${caveHTML(p)}${Object.keys(p.poisons || {}).length ? '<div class="hero-poison">감염 ' + poisonBadges(p.poisons) + '</div>' : ''}</div>
+    <div class="hero-info"><div class="hero-name">${esc(p.name)}</div><div class="hero-race">${r.name} · 손패 ${p.hand.length}</div>${caveHTML(p)}${owlTimeHTML(p)}${Object.keys(p.poisons || {}).length ? '<div class="hero-poison">감염 ' + poisonBadges(p.poisons) + '</div>' : ''}</div>
     <div class="hero${tgt}" data-ref="h${p.idx}" style="--rc:${r.color}">
       <div class="portrait">${r.hero}</div>
       <div class="hero-hp ${p.hp < p.maxHp ? 'hurt' : ''}">${p.hp}</div>
@@ -171,6 +171,14 @@ function heroZoneHTML(p, isMe) {
 // 감염(독) 표시: 🟢2↑ = 다음 턴 피해 2, 상급(매 턴 +1)
 function poisonBadges(ps) {
   return Object.entries(ps || {}).map(([k, pz]) => `<span class="pz" title="${POISON_INFO[k].name}">${POISON_INFO[k].icon}${pz.dmg}${pz.adv ? '↑' : ''}</span>`).join('');
+}
+
+// 아울: 지금이 낮인지 밤인지
+function owlTimeHTML(p) {
+  if (p.race !== 'owl' || !p.time) return '';
+  return p.time === 'night'
+    ? '<div class="owl-time night" title="밤: 내 부엉이 공격력 +1">🌙 밤 · 공격 모드</div>'
+    : '<div class="owl-time day" title="낮: 내 부엉이 생명력 +1, 대신 자느라 공격 못 함">☀️ 낮 · 부엉이 쿨쿨</div>';
 }
 
 // 호랑이: 쑥/마늘 보유량 (동굴 속 짝이 나올 때 1개씩 먹음)
@@ -666,6 +674,11 @@ function playEvents(evs, prev) {
       case 'steal': toast(`🧠 [${CARDS[getChar(s, e.ref)?.m?.id]?.name || '소환물'}]을(를) 빼앗았습니다!`); break;
       case 'play':
         if (e.pi !== App.me || App.mode === 'ai' && e.pi === 1) showPlayed(e.id, e.pi);
+        break;
+      case 'moonFlip':
+        banner(e.time === 'night' ? '🌙 밤이 되었다! 부엉이들이 눈을 뜬다' : '☀️ 낮이 되었다… 부엉이들이 잠든다');
+        document.body.classList.add(e.time === 'night' ? 'flash-night' : 'flash-day');
+        setTimeout(() => document.body.classList.remove('flash-night', 'flash-day'), 900);
         break;
       case 'heropower':
         if (e.pi !== App.me) toast(`${s.players[e.pi].name}: 영웅 능력 [${RACES[s.players[e.pi].race].heroPower.name}]`);

@@ -91,7 +91,7 @@ function createGame(a, b, first) {
   [a, b].forEach((p, i) => s.players.push({
     idx: i, name: p.name, race: p.race, hp: HERO_HP, maxHp: HERO_HP, mana: 0, maxMana: 0,
     piles: buildPiles(p.race), hand: [], board: [], fatigue: 0, heroPowerUsed: false,
-    ssuk: 0, garlic: 0, cave: [], poisons: {}, weather: null,
+    ssuk: 0, garlic: 0, cave: [], poisons: {}, weather: null, time: p.race === 'owl' ? 'day' : null,
   }));
   if (first == null) first = rnd(2);
   s.current = first;
@@ -214,8 +214,37 @@ function summon(s, pi, id, pos) {
   const m = makeMinion(s, id);
   if (pos == null || pos > p.board.length) pos = p.board.length;
   p.board.splice(pos, 0, m);
+  syncOwl(m, p);
   ev(s, { type: 'summon', ref: 'm' + m.uid });
   return m;
+}
+
+// ───────────── 아울: 낮과 밤 ─────────────
+var OWL_DAY_HP = 1, OWL_NIGHT_ATK = 1;
+function isOwl(m) { return CARDS[m.id].race === 'owl'; }
+// 소환물이 지금 받고 있어야 할 낮/밤 보너스로 맞춤 (m.dn = 지금 받고 있는 보너스)
+function syncOwl(m, p) {
+  const want = p.time && isOwl(m) && isUnit(m) ? p.time : null;
+  if ((m.dn || null) === want) return;
+  if (m.dn === 'day') { m.maxHp -= OWL_DAY_HP; m.hp = Math.min(m.hp, m.maxHp); if (m.dTaunt) { m.taunt = false; m.dTaunt = false; } }
+  if (m.dn === 'night') m.atk = Math.max(0, m.atk - OWL_NIGHT_ATK);
+  if (want === 'day') { m.maxHp += OWL_DAY_HP; m.hp += OWL_DAY_HP; if (CARDS[m.id].dayTaunt && !m.taunt) { m.taunt = true; m.dTaunt = true; } }
+  if (want === 'night') m.atk += OWL_NIGHT_ATK;
+  m.dn = want;
+  m.dozing = want === 'day';
+}
+function syncOwls(s) { s.players.forEach(p => p.board.forEach(m => syncOwl(m, p))); }
+function flipMoon(s, pi, to) {
+  const p = s.players[pi];
+  if (p.race !== 'owl' || p.time === to) return;
+  p.time = to;
+  p.board.forEach(m => syncOwl(m, p));
+  ev(s, { type: 'moonFlip', pi, time: to });
+  log(s, to === 'night' ? `🌙 ${p.name}: 밤이 되었다! 부엉이들이 눈을 뜬다` : `☀️ ${p.name}: 낮이 되었다. 부엉이들이 잠든다`);
+  for (const m of [...p.board]) {
+    const c = CARDS[m.id];
+    if (c.onFlip && isUnit(m)) runEffects(s, c.onFlip, { pi, source: m, target: null, isSpell: false });
+  }
 }
 
 function alive(m) { return !m.dead && m.hp > 0; }
@@ -383,6 +412,12 @@ function applyEffect(s, e, ctx) {
         if (e.shield) m.shield = true; (e.kw || []).forEach(k => { m[k] = true; });
         ev(s, { type: 'buff', ref: 'm' + m.uid });
       });
+      break;
+    case 'flipMoon':
+      flipMoon(s, ctx.pi, me.time === 'night' ? 'day' : 'night');
+      break;
+    case 'eclipse':
+      if (me.race === 'owl') { if (me.time !== 'night') flipMoon(s, ctx.pi, 'night'); me.heroPowerUsed = false; }
       break;
     case 'buffPerFriendly': {
       const m = ctx.source;
@@ -625,6 +660,7 @@ function playCard(s, pi, handUid, target) {
 
   if (c.type === 'minion') {
     const m = summon(s, pi, c.id);
+    if (m && c.nightCharge && p.time === 'night') m.charge = true;
     if (c.battlecry) runEffects(s, c.battlecry, { pi, source: m, target, isSpell: false });
   } else {
     runEffects(s, c.effects, { pi, source: null, target, isSpell: true });
@@ -639,7 +675,7 @@ function playCard(s, pi, handUid, target) {
 
 // ───────────── 전투 ─────────────
 function canAttack(m) {
-  return isUnit(m) && !isMineral(m) && m.attacksLeft > 0 && m.atk > 0 && !m.frozen && (!m.sleeping || m.charge);
+  return isUnit(m) && !isMineral(m) && !m.dozing && m.attacksLeft > 0 && m.atk > 0 && !m.frozen && (!m.sleeping || m.charge);
 }
 
 function attackTargets(s, pi) {
@@ -968,6 +1004,6 @@ function applyAction(s, pi, a) {
       case 'end': endTurn(s, pi); ok = true; break;
     }
   }
-  if (ok) s.seq++;
+  if (ok) { syncOwls(s); s.seq++; }
   return ok;
 }
