@@ -1,6 +1,6 @@
 'use strict';
 // =====================================================================
-//  종족대전 - 카드 데이터
+//  엉뚱 한마당 - 카드 데이터
 //  효과(effects) 형식: { t: 효과종류, to: 대상, n: 수치, ... }
 //  대상(to): target(선택한 대상) self myHero enemyHero allEnemyMinions
 //           allEnemies allFriendlyMinions otherFriendlyMinions allMinions

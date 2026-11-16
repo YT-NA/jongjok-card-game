@@ -567,3 +567,8 @@ body.touch #preview { --u: min(2.8vh, 1.6vw); left: max(8px, env(safe-area-inset
   .race-power { -webkit-line-clamp: 3; }
   #raceSelect { gap: 4px; }
 }
+
+/* 제목: 얼씨구 (작은 윗줄) + 엉뚱 한마당 */
+.title { line-height: 1.05; text-align: center; letter-spacing: 3px; }
+.title .title-pre { display: block; font-size: .42em; letter-spacing: .5em; margin-bottom: .05em; }
+@media (max-height: 520px) { .title { font-size: clamp(32px, 7vw, 56px); } }

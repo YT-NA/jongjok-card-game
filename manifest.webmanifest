@@ -1,7 +1,7 @@
 {
-  "name": "종족대전",
-  "short_name": "종족대전",
-  "description": "6종족 카드 배틀 · 최대 8인 전장",
+  "name": "얼씨구 엉뚱 한마당",
+  "short_name": "엉뚱 한마당",
+  "description": "온갖 종족이 한판 붙는 카드 놀이판 · 최대 8인 전장",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
