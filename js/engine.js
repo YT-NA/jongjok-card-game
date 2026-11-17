@@ -445,7 +445,7 @@ function applyEffect(s, e, ctx) {
       break;
     case 'poison':
       resolveTo(s, e.to, ctx).forEach(r => {
-        const kinds = e.kind === 'all' ? POISON_KINDS : [e.kind === 'random' ? pick(POISON_KINDS) : e.kind];
+        const kinds = e.kind === 'all' ? POISON_KINDS : [e.kind === 'random' ? pick(POISON_KINDS) : e.kind]; // 'random'은 대상마다 새로 뽑음
         kinds.forEach(k => applyPoison(s, r, k, e.adv));
       });
       break;

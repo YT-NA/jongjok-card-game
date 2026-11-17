@@ -11,7 +11,7 @@ const DRAG_START_PX = 12;
 function dragHitRef(x, y) {
   const el = document.elementFromPoint(x, y);
   const r = el && el.closest('#game [data-ref]');
-  return r ? r.dataset.ref : null;
+  return r ? r.dataset.ref : zoneHeroRef(el);
 }
 
 function dragBegin(st) {

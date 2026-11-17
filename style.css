@@ -582,3 +582,25 @@ body.flash-night::after { background: radial-gradient(circle at 50% 30%, rgba(40
 body.flash-day::after { background: radial-gradient(circle at 50% 20%, rgba(255, 230, 140, .55), rgba(255, 200, 80, .15)); }
 @keyframes dnflash { from { opacity: 1; } to { opacity: 0; } }
 @media (max-height: 520px) { .owl-time { font-size: 10px; padding: 1px 6px; margin-top: 2px; } }
+
+/* 적 영웅 칸 전체가 공격 대상일 때 */
+#oppZone.zone-target .hz-inner { outline: 3px dashed #ff6b6b; outline-offset: 2px; border-radius: 14px; cursor: crosshair; animation: zonePulse 1s ease-in-out infinite; }
+@keyframes zonePulse { 50% { outline-color: rgba(255, 107, 107, .35); } }
+
+/* 아울 달 뒤집기 연출 */
+.moon-flip { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 60; perspective: 900px; }
+.mf-disc { position: relative; width: min(34vh, 34vw); height: min(34vh, 34vw); transform-style: preserve-3d; animation: mfFlip 1.6s cubic-bezier(.5, 0, .3, 1) forwards; }
+.mf-face { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; font-size: min(20vh, 20vw); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.mf-face.sun { background: radial-gradient(circle at 40% 35%, #fff6c2, #ffcf40 55%, #e88a10); box-shadow: 0 0 60px 20px rgba(255, 196, 60, .6); }
+.mf-face.moon { background: radial-gradient(circle at 40% 35%, #e8e6ff, #8f84ff 55%, #2b2370); box-shadow: 0 0 60px 20px rgba(143, 132, 255, .6); }
+.mf-back { transform: rotateY(180deg); }
+@keyframes mfFlip {
+  0% { transform: scale(.2) rotateY(0); }
+  18% { transform: scale(1) rotateY(0); }
+  62% { transform: scale(1.05) rotateY(180deg); }
+  82% { transform: scale(1) rotateY(180deg); }
+  100% { transform: scale(.6) rotateY(180deg); }
+}
+@keyframes mfFade { 0% { opacity: 0; } 15% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
+.moon-flip { animation: mfFade 1.6s linear forwards; }
+@media (prefers-reduced-motion: reduce) { .mf-disc { animation-duration: .01s; } }

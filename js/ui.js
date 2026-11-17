@@ -59,6 +59,16 @@ function toast(msg, ms = 1800) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), ms);
 }
+// 아울 달 뒤집기: 커다란 해/달 원판이 빙글 뒤집힘
+function playMoonFlip(to) {
+  const night = to === 'night';
+  const el = document.createElement('div');
+  el.className = 'moon-flip';
+  el.innerHTML = `<div class="mf-disc"><div class="mf-face mf-front ${night ? 'sun' : 'moon'}">${night ? '☀️' : '🌙'}</div><div class="mf-face mf-back ${night ? 'moon' : 'sun'}">${night ? '🌙' : '☀️'}</div></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1700);
+}
+
 function banner(text) {
   const b = $('#banner');
   b.textContent = text;
@@ -188,6 +198,14 @@ function caveHTML(p) {
 }
 
 // ───────────── 렌더링 ─────────────
+// 적 영웅 칸(#oppZone) 안을 가리키고, 지금 적 영웅이 대상이 될 수 있으면 그 ref
+function zoneHeroRef(el) {
+  const s = App.state;
+  if (!s || !el || !el.closest || !el.closest('#oppZone')) return null;
+  const r = 'h' + (1 - App.me);
+  return App.targets.includes(r) ? r : null;
+}
+
 function isMyTurn() {
   const s = App.state;
   return !!s && s.winner == null && s.current === App.me && !App.spectating && !(App.mode === 'ai' && App.me !== 0);
@@ -213,6 +231,7 @@ function render() {
   $('#game').classList.toggle('targeting', App.targets.length > 0);
   $('#oppHand').innerHTML = op.hand.map(() => '<div class="cback"></div>').join('');
   $('#oppZone').innerHTML = heroZoneHTML(op, false);
+  $('#oppZone').classList.toggle('zone-target', App.targets.includes('h' + op.idx));
   $('#myZone').innerHTML = heroZoneHTML(me, true);
   $('#oppBoard').innerHTML = op.board.map(m => minionHTML(m, op.idx)).join('');
   $('#myBoard').innerHTML = me.board.map(m => minionHTML(m, me.idx)).join('');
@@ -677,6 +696,7 @@ function playEvents(evs, prev) {
         break;
       case 'moonFlip':
         banner(e.time === 'night' ? '🌙 밤이 되었다! 부엉이들이 눈을 뜬다' : '☀️ 낮이 되었다… 부엉이들이 잠든다');
+        playMoonFlip(e.time);
         document.body.classList.add(e.time === 'night' ? 'flash-night' : 'flash-day');
         setTimeout(() => document.body.classList.remove('flash-night', 'flash-day'), 900);
         break;
@@ -838,6 +858,9 @@ $('#game').addEventListener('click', e => {
   if (TOUCH && !e.target.closest('[data-hand]') && !e.target.closest('[data-ref]') && App.inspect != null && App.inspect !== 'hp' && !e.target.closest('[data-hpower]')) { App.inspect = null; $('#preview').innerHTML = ''; render(); }
   const refEl = e.target.closest('[data-ref]');
   if (refEl) return onRef(refEl.dataset.ref);
+  // 적 영웅 칸 아무 데나 눌러도 적 영웅을 노림 (초상화가 작아서)
+  const oppHeroRef = zoneHeroRef(e.target);
+  if (oppHeroRef) return onRef(oppHeroRef);
   const handEl = e.target.closest('[data-hand]');
   if (handEl) return onHand(+handEl.dataset.hand);
   if (e.target.closest('[data-hpower]')) return onHeroPower();
